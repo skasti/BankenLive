@@ -37,6 +37,57 @@ namespace BankenLive
         public Boolean HasToken { get { return !String.IsNullOrEmpty(Token); } }
         public String LastError { get; set; }
 
+
+        private Account _previousAccount = null;
+        public Account PreviousAccount
+        {
+            get
+            {
+                if (_previousAccount == null)
+                {
+                    var localSettings = ApplicationData.Current.LocalSettings;
+                    var json = localSettings.Values["PreviousAccount"] as string;
+
+                    if (!String.IsNullOrEmpty(json))
+                        _previousAccount = JsonConvert.DeserializeObject<Account>(json);
+                }
+
+                return _previousAccount;
+            }
+            private set
+            {
+                var localSettings = ApplicationData.Current.LocalSettings;
+                localSettings.Values["PreviousAccount"] = JsonConvert.SerializeObject(value);
+                
+                _previousAccount = value;
+            }
+        }
+
+        private Account _currentAccount = null;
+        public Account CurrentAccount
+        {
+            get
+            {
+                if (_currentAccount == null)
+                {
+                    var localSettings = ApplicationData.Current.LocalSettings;
+                    var json = localSettings.Values["CurrentAccount"] as string;
+
+                    if (!String.IsNullOrEmpty(json))
+                        _currentAccount = JsonConvert.DeserializeObject<Account>(json);
+                }
+
+                return _currentAccount;
+            }
+            private set
+            {
+                var localSettings = ApplicationData.Current.LocalSettings;
+                localSettings.Values["CurrentAccount"] = JsonConvert.SerializeObject(value);
+
+                _currentAccount = value;
+            }
+        }
+
         private Session()
         {
             Client = new HttpClient();
@@ -155,6 +206,11 @@ namespace BankenLive
             }
 
             var account = JsonConvert.DeserializeObject<Account>(await response.Content.ReadAsStringAsync());
+
+            if (CurrentAccount != null)
+                PreviousAccount = CurrentAccount;
+
+            CurrentAccount = account;
 
             return account;
         }
