@@ -1,0 +1,60 @@
+﻿<Page
+    x:Class="BankenLive.TransactionDetailsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BankenLive"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid x:Name="LayoutRoot">
+
+        <Grid.ChildrenTransitions>
+            <TransitionCollection>
+                <EntranceThemeTransition/>
+            </TransitionCollection>
+        </Grid.ChildrenTransitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Panel -->
+        <StackPanel Grid.Row="0" Margin="19,0,0,0">
+            <TextBlock Text="BANKEN LIVE" Style="{ThemeResource TitleTextBlockStyle}" Margin="0,12,0,0"/>
+            <TextBlock x:Uid="TransactionDetailsPageTitle" Text="TransactionDetailsPageTitle" Margin="0,-6.5,0,26.5" Style="{ThemeResource HeaderTextBlockStyle}" CharacterSpacing="{ThemeResource PivotHeaderItemCharacterSpacing}"/>
+        </StackPanel>
+
+        <!--TODO: Content should be placed within the following grid-->
+        <Grid Grid.Row="1" x:Name="ContentRoot" Margin="19,9.5,19,0">
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Uid="TypeLabel" Text="Type:" Margin="0,0,10,0" />
+                    <TextBlock x:Name="TypeLabel" Text="VALUE" TextWrapping="WrapWholeWords" />
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Uid="DateLabel" Text="Date:" Margin="0,0,10,0" />    
+                    <TextBlock x:Name="DateLabel" Text="VALUE" TextWrapping="WrapWholeWords" />
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock x:Uid="AmountLabel" Text="Amount:" Margin="0,0,10,0" />    
+                    <TextBlock x:Name="AmountLabel" Text="VALUE" TextWrapping="WrapWholeWords" />
+                </StackPanel>
+
+                <TextBlock x:Uid="DescriptionLabel" Text="Description:" />
+                <TextBlock x:Name="DescriptionLabel" Text="VALUE" TextWrapping="WrapWholeWords" />
+
+                <StackPanel Orientation="Vertical" Margin="0,10,0,0">
+                    <TextBlock x:Uid="TagsLabel" Text="Tags:" />
+                    <TextBox x:Name="TagsInput" Margin="0,0,0,0" />
+                    <Button x:Name="SaveTagsButton" x:Uid="SaveTagsButton" Content="SaveTagsButton" />
+                </StackPanel>
+                
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

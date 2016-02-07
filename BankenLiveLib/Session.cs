@@ -31,84 +31,38 @@ namespace BankenLive
         }
 
         private HttpClient Client { get; set; }
-        private String Token { get; set; }
-        private String AccountId { get; set; }
-
-        public Boolean HasToken { get { return !String.IsNullOrEmpty(Token); } }
+       
         public String LastError { get; set; }
 
-
-        private Account _previousAccount = null;
-        public Account PreviousAccount
+        private Account _account;
+        public Account Account
         {
             get
             {
-                if (_previousAccount == null)
-                {
-                    var localSettings = ApplicationData.Current.LocalSettings;
-                    var json = localSettings.Values["PreviousAccount"] as string;
-
-                    if (!String.IsNullOrEmpty(json))
-                        _previousAccount = JsonConvert.DeserializeObject<Account>(json);
-                }
-
-                return _previousAccount;
+                return _account;
             }
             private set
             {
-                var localSettings = ApplicationData.Current.LocalSettings;
-                localSettings.Values["PreviousAccount"] = JsonConvert.SerializeObject(value);
-                
-                _previousAccount = value;
+                if (value == _account)
+                    return;
+
+                _account = value;
             }
         }
 
-        private Account _currentAccount = null;
-        public Account CurrentAccount
-        {
-            get
-            {
-                if (_currentAccount == null)
-                {
-                    var localSettings = ApplicationData.Current.LocalSettings;
-                    var json = localSettings.Values["CurrentAccount"] as string;
-
-                    if (!String.IsNullOrEmpty(json))
-                        _currentAccount = JsonConvert.DeserializeObject<Account>(json);
-                }
-
-                return _currentAccount;
-            }
-            private set
-            {
-                var localSettings = ApplicationData.Current.LocalSettings;
-                localSettings.Values["CurrentAccount"] = JsonConvert.SerializeObject(value);
-
-                _currentAccount = value;
-            }
-        }
+        public bool AccountLoaded { get; private set; }
 
         private Session()
         {
             Client = new HttpClient();
-
-            LoadSettings();
         }
 
-        private void LoadSettings()
+        public async Task<Account> LoadAccount()
         {
-            var localSettings = ApplicationData.Current.LocalSettings;
-
-            Token = localSettings.Values["Token"] as string;
-            AccountId = localSettings.Values["AccountId"] as string;
-        }
-
-        private void SaveSettings()
-        {
-            var localSettings = ApplicationData.Current.LocalSettings;
-
-            localSettings.Values["Token"] = Token;
-            localSettings.Values["AccountId"] = AccountId;
+            if (AccountLoaded) return Account;
+            _account = await Account.Load();
+            AccountLoaded = true;
+            return Account;
         }
 
         public async Task<Boolean> Level2Login(string bank, string ssn, string password, string oneTimePassword)
@@ -156,9 +110,7 @@ namespace BankenLive
 
             var token = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
 
-            Token = (string)token["token"];
-
-            SaveSettings();
+            BankenLiveSettings.Instance.Token = (string)token["token"];
 
             return true;
         }
@@ -171,7 +123,7 @@ namespace BankenLive
             request.Headers.Authorization = new AuthenticationHeaderValue("SB1-TOKEN");
 
             request.Content = new StringContent(
-                JsonConvert.SerializeObject(new { token = Token }),
+                JsonConvert.SerializeObject(new { token = BankenLiveSettings.Instance.Token }),
                 Encoding.UTF8, "application/json");
 
             var response = await Client.SendAsync(request);
@@ -184,16 +136,14 @@ namespace BankenLive
 
             var session = JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
 
-            AccountId = (string)session["user"]["defaultBalanceAccountNumber"];
-
-            SaveSettings();
+            BankenLiveSettings.Instance.AccountId = (string)session["user"]["defaultBalanceAccountNumber"];
 
             return true;
         }
 
-        public async Task<Account> GetInfo()
+        public async Task<AccountSnapshot> GetInfo()
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, CommonData.BaseUri + "/accounts/" + AccountId);
+            var request = new HttpRequestMessage(HttpMethod.Get, CommonData.BaseUri + "/accounts/" + BankenLiveSettings.Instance.AccountId);
 
             request.Headers.Add("X-SB1-Rest-Version", "1.0.0");
 
@@ -205,29 +155,40 @@ namespace BankenLive
                 return null;
             }
 
-            var account = JsonConvert.DeserializeObject<Account>(await response.Content.ReadAsStringAsync());
+            var accountJson = await response.Content.ReadAsStringAsync();
 
-            if (CurrentAccount != null)
-                PreviousAccount = CurrentAccount;
+            var snapshot = JsonConvert.DeserializeObject<AccountSnapshot>(accountJson);
 
-            CurrentAccount = account;
+            if (Account == null)
+            {
+                Account = new Account(snapshot.Id, snapshot.Name, new List<AccountSnapshot>());
+            }
 
-            return account;
+            Account.AddSnapshot(snapshot);
+            await Account.Save();
+
+            return snapshot;
         }
-    }
 
-    public class Account
-    {
-        public String Id { get; set; }
-        public String Name { get; set; }
-        public String FormattedNumber { get; set; }
-        public int DisposableAmountInteger { get; set; }
-        public int DisposableAmountFraction { get; set; }
-
-        public override string ToString()
+        public async Task<IEnumerable<Transaction>> GetTransactions()
         {
-            return String.Format("{0}: {1},{2}", Name, DisposableAmountInteger,
-                    DisposableAmountFraction > 0 ? DisposableAmountFraction.ToString() : "-");
+            var request = new HttpRequestMessage(HttpMethod.Get, CommonData.BaseUri + "/accounts/" + BankenLiveSettings.Instance.AccountId + "/transactions");
+
+            request.Headers.Add("X-SB1-Rest-Version", "1.0.0");
+
+            var response = await Client.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                LastError = "Kunne ikke hente transaksjoner";
+                return null;
+            }
+
+            var transactionsJson = await response.Content.ReadAsStringAsync();
+
+            var transactionsWrapper = JsonConvert.DeserializeObject<TransactionsWrapper>(transactionsJson);
+
+            return transactionsWrapper.Transactions;
         }
     }
 }

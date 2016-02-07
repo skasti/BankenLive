@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel.Background;
+using Windows.ApplicationModel.Resources;
 using Windows.Data.Xml.Dom;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
@@ -28,7 +29,6 @@ namespace BankenLive
         public MainPage()
         {
             this.InitializeComponent();
-
             this.NavigationCacheMode = NavigationCacheMode.Required;
         }
 
@@ -39,23 +39,31 @@ namespace BankenLive
         /// This parameter is typically used to configure the page.</param>
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
-            AccountInfo.Text = "Laster...";
+            LoadingBar.Visibility = Visibility.Visible;
+            var account = await Session.Current.LoadAccount();
+            var resources = new ResourceLoader();
 
-            if (Session.Current.HasToken && (await Session.Current.Login()))
+            var vault = await TransactionVault.GetInstance();
+            LatestTransactions.ItemsSource = vault.Transactions;
+
+            AccountBalanceLabel.Text = account.ToString();
+
+            if (BankenLiveSettings.Instance.HasToken && (await Session.Current.Login()))
             {
-                var account = await Session.Current.GetInfo();
-
-                if (account == null)
+                var snapshot = await Session.Current.GetInfo();
+                if (snapshot == null)
                     return;
 
-                AccountInfo.Text = account.ToString();
+                AccountBalanceLabel.Text = account.ToString();
+                UpdateTile(account.ToString());
             }
             else
             {
-                AccountInfo.Text = "Logg inn for å hente data";
+                AccountBalanceLabel.Text = resources.GetString("LoginRequiredText");
             }
 
             RegisterTask();
+            LoadingBar.Visibility = Visibility.Collapsed;
         }
 
         private async void RegisterTask()
@@ -99,17 +107,37 @@ namespace BankenLive
             Frame.Navigate(typeof (LoginPage));
         }
 
-        private void UpdateTile_Click(object sender, RoutedEventArgs e)
+        private void UpdateTile(string text)
         {
             var updater = TileUpdateManager.CreateTileUpdaterForApplication();
-            var contentXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWidePeekImage06);
+            var contentXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150PeekImage06);
 
-            contentXml.GetElementsByTagName("text")[0].InnerText = AccountInfo.Text;
+            contentXml.GetElementsByTagName("text")[0].InnerText = text;
 
             foreach (XmlElement image in contentXml.GetElementsByTagName("image"))
                 image.SetAttribute("src", "ms-appx:///Assets/Wide310x150Logo.png");
 
             updater.Update(new TileNotification(contentXml));
+        }
+
+        private void configButton_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(ConfigPage));
+        }
+
+        private void LoginAppBtn_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(LoginPage));
+        }
+
+        private void ConfigAppBtn_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(ConfigPage));
+        }
+
+        private void TransactionsAppBtn_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(TransactionsPage));
         }
     }
 }

@@ -8,7 +8,7 @@
     <ProjectGuid>{75D8F4AC-C5BB-4956-AAEC-6B86A11B02E3}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BankenLiveLib</RootNamespace>
+    <RootNamespace>BankenLive</RootNamespace>
     <AssemblyName>BankenLiveLib</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <FileAlignment>512</FileAlignment>
@@ -38,9 +38,14 @@
     <TargetPlatform Include="Windows, Version=8.1" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Account.cs" />
+    <Compile Include="AccountSnapshot.cs" />
+    <Compile Include="BankenLiveSettings.cs" />
     <Compile Include="CommonData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Session.cs" />
+    <Compile Include="Transaction.cs" />
+    <Compile Include="TransactionVault.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
